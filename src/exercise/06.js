@@ -7,37 +7,45 @@ import { fetchPokemon, PokemonDataView, PokemonForm, PokemonInfoFallback } from 
 function PokemonInfo({ pokemonName }) {
   const [pokemon, setPokemon] = React.useState(null);
   const [error, setError] = React.useState(null);
-
+  const [status, setStatus] = React.useState('idle')
 
   React.useEffect(() => {
     if (!pokemonName) {
+      setStatus('idle');
       return;
     }
 
-    setPokemon(null)
+    setStatus('pending')
 
     fetchPokemon(pokemonName)
       .then(
-        data => setPokemon(data),
-        err => setError(err)
+        data => {
+          setPokemon(data)
+          setStatus('resolved')
+        },
+        err => {
+          setError(err)
+          setStatus('rejected')
+        }
       )
   }, [pokemonName])
 
-  if (!pokemonName) {
-    return ('Submit a pokemon');
+  switch (status) {
+    case 'rejected':
+      return (
+        <div role="alert">
+          There was an error: <pre style={{ whiteSpace: 'normal' }}>{error.message}</pre>
+        </div>
+      )
+    case 'resolved':
+      return <PokemonDataView pokemon={pokemon} />
+    case 'idle':
+      return ('Submit a pokemon');
+    case 'pending':
+      return <PokemonInfoFallback name={pokemonName} />
+    default:
+      throw new Error(`Unhandled status: ${status}`);
   }
-
-  if (error) {
-    return (
-      <div role="alert">
-        There was an error: <pre style={{ whiteSpace: 'normal' }}>{error.message}</pre>
-      </div>
-    )
-  }
-
-  return !pokemon
-    ? <PokemonInfoFallback name={pokemonName} />
-    : <PokemonDataView pokemon={pokemon} />
 }
 
 function App() {
